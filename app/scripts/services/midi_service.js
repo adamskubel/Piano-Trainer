@@ -2,6 +2,7 @@ import AnalyticsService from "../services/analytics_service.js";
 import Freezer from "freezer-js";
 import AppFreezer from "../AppFreezer.js";
 import KeyConverter from "../services/key_converter.js";
+import WebMidi from  "webmidi"
 import _ from "lodash";
 
 function getMidiSettings() {
@@ -34,23 +35,28 @@ export default class MidiService {
 
     if (mocked) {
       return;
-    }
 
-    if (!navigator.requestMIDIAccess) {
-      AnalyticsService.sendEvent('MidiService', "no-browser-support");
-      this.errorCallback("Your browser doesn't seem to support MIDI Access.");
-      return;
     }
 
 
-    this.promise = navigator.requestMIDIAccess({sysexEnabled: true});
-    this.promise.then(
-      this.onMidiAccess.bind(this),
-      () => {
-        AnalyticsService.sendEvent('MidiService', "problem-requesting-midi");
-        this.errorCallback("There was a problem while requesting MIDI access.", arguments);
-      }
-    );
+    this.promise = WebMidi.enable(this.onMidiAccess.bind(this));
+    // this.promise.then(,()=>{console.err("FUCK")});
+
+    // if (!navigator.requestMIDIAccess) {
+    //   AnalyticsService.sendEvent('MidiService', "no-browser-support");
+    //   this.errorCallback("Your browser doesn't seem to support MIDI Access.");
+    //   return;
+    // }
+
+
+    // this.promise = navigator.requestMIDIAccess({sysexEnabled: true});
+    // this.promise.then(
+    //   this.onMidiAccess.bind(this),
+    //   () => {
+    //     AnalyticsService.sendEvent('MidiService', "problem-requesting-midi");
+    //     this.errorCallback("There was a problem while requesting MIDI access.", arguments);
+    //   }
+    // );
   }
 
   initializeInputStates() {
@@ -113,17 +119,19 @@ export default class MidiService {
   }
 
   onMidiAccess(midi) {
-    const inputValues = midi.inputs.values();
-    const inputs = [];
-    for (let input = inputValues.next(); input && !input.done; input = inputValues.next()) {
-      inputs.push(input.value);
-    }
-    if (inputs.length === 0) {
-      AnalyticsService.sendEvent('MidiService', "no-midi-device-found");
-      this.errorCallback("No MIDI device found.");
-      return;
-    }
-    let input = inputs[0];
+
+    // const inputValues = WebMidi.inputs;
+    // const inputs = [];
+    // for (let input = inputValues.next(); input && !input.done; input = inputValues.next()) {
+    //   inputs.push(input.value);
+    // }
+    // if (inputs.length === 0) {
+    //   AnalyticsService.sendEvent('MidiService', "no-midi-device-found");
+    //   this.errorCallback("No MIDI device found.");
+    //   return;
+    // }
+    const inputs = WebMidi.inputs;
+    let input = WebMidi.inputs[0];
     this.listenToInput(input);
 
     getMidiSettings().set({
@@ -149,24 +157,24 @@ export default class MidiService {
   }
 
   listenToInput(input) {
-    input.onmidimessage = null;
-    input.onmidimessage = this.onMidiMessage.bind(this);
-
-    setTimeout(
-      () => {
-        if (this.receivingMidiMessages) {
-          console.log("Receiving events...");
-        } else {
-          console.warn("Firing error callback");
-          AnalyticsService.sendEvent('MidiService', "no-messages");
-          this.errorCallback(`
-            A MIDI device could be found, but it doesn't send any messages.
-            Did you press a key, yet? A browser restart could help.
-          `);
-          this.errorCallbackFired = true;
-        }
-      }, 2000
-    );
+    input.addListener('noteon', "all", this.onMidiMessage.bind(this));
+    input.addListener('noteoff', "all", this.onMidiMessage.bind(this));
+        
+    // setTimeout(
+    //   () => {
+    //     if (this.receivingMidiMessages) {
+    //       console.log("Receiving events...");
+    //     } else {
+    //       console.warn("Firing error callback");
+    //       AnalyticsService.sendEvent('MidiService', "no-messages");
+    //       this.errorCallback(`
+    //         A MIDI device could be found, but it doesn't send any messages.
+    //         Did you press a key, yet? A browser restart could help.
+    //       `);
+    //       this.errorCallbackFired = true;
+    //     }
+    //   }, 2000
+    // );
   }
 
   onMidiMessage(msg) {
@@ -179,22 +187,22 @@ export default class MidiService {
     let [status, keyNumber, intensity] = msg.data;
 
     if (status === MidiService.activeSensingStatus) {
-      // ignore "active sensing" event
       return;
     }
 
-    console.log(msg);
+    // console.log(msg);
 
-    if (status <= MidiService.offKeyStatus) {
-      // off event
+    if (msg.type == "noteoff"){
+      console.log("Up: " + (new Date()).getTime());
       intensity = 0;
     }
+    else       
+      console.log("Down: " + (new Date()).getTime());
 
-    if (status <= MidiService.onKeyStatus) {
-      // on or off event
-      this.setKeyNumber(keyNumber, intensity);
-    }
+    this.setKeyNumber(keyNumber, intensity);
   }
+
+  
 }
 
 // todo: extract to constants or sth similar

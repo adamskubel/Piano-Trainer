@@ -44,7 +44,7 @@ export default class PitchReadingView extends Component {
     this.startDate = new Date();
     this.midiService.setDesiredKeys(this.getAllCurrentKeys(), this.state.currentKeySignature);
 
-    const debugMode = true;
+    const debugMode = false;
     if (debugMode) {
       this.debugKeyUpCallback = (event) => {
         const yesKeyCode = 89;
@@ -103,14 +103,15 @@ export default class PitchReadingView extends Component {
   }
 
   generateNewBars(settings) {
-    const levelIndex =
-      LevelService.getLevelOfUser(this.props.statisticService.getAllEvents()) + 1;
+    const levelIndex = 4;
+      // LevelService.getLevelOfUser(this.props.statisticService.getAllEvents()) + 1;
     const level = LevelService.getLevelByIndex(levelIndex);
     return BarGenerator.generateBars(settings, settings.useAutomaticDifficulty ? level : null);
   }
 
   generateNewBarState() {
     return {
+      finished : false,
       currentChordIndex: 0,
       currentKeys: this.generateNewBars(this.props.settings),
       currentKeySignature: BarGenerator.generateKeySignature(this.props.settings)
@@ -135,111 +136,10 @@ export default class PitchReadingView extends Component {
     this.startDate = new Date();
   }
 
-  render() {
-    const claviatureContainerClasses = classNames({
-      "content-box": true,
-      "claviature-container": true
-    });
 
-    const isMidiAvailable = this.props.settings.midi.inputs.get().length > 0;
-    const noErrors = this.state.errorMessage !== null;
-    const miniClaviature = (isMidiAvailable && noErrors)
-     ? null :
-     <ClaviatureView
-       desiredKeys={this.getAllCurrentKeys()}
-       keySignature={this.state.currentKeySignature}
-       successCallback={this.onSuccess.bind(this)}
-       failureCallback={this.onFailure.bind(this)}
-       disabled={!this.state.running}
-      />;
-
-    const startStopButton = <GameButton
-      label={`${this.state.running ? "Stop" : "Start"} training`}
-      shortcutLetter='s'
-      primary
-      onClick={this.startStopTraining.bind(this)}
-    />;
-
-    const midiSetUpText = <p>
-      {`The generated notes will be so that you play only one note at a time.
-      If you want to practice chords, have a look into the `}
-      <a href="https://github.com/philippotto/Piano-Trainer#how-to-use">
-        Set Up
-      </a>
-      {" section to hook up your digital piano."}
-    </p>;
-
-    const welcomeText = <CollapsableContainer collapsed={this.state.running}>
-      <div className={classNames({
-        welcomeText: true,
-      })}>
-        <h3>
-          Welcome to this pitch training!
-        </h3>
-        <p>
-           {"When you hit Start, notes will be displayed in the stave above. "}
-           {isMidiAvailable ?
-              "Since we found a connected piano, you can use it to play the notes. " :
-              "Just use the mini claviature below to play the notes. "
-           }
-           {"Don't worry about the rhythm or speed for now."}
-        </p>
-        {isMidiAvailable ? null : midiSetUpText}
-      </div>
-    </CollapsableContainer>;
-
-    const emptyKeySet = {
-      treble: [],
-      bass: []
-    };
-
-    return (
-      <div className={classNames({trainer: true, "trainerHidden1": !this.props.isActive})}>
-        <div className="row center-lg center-md center-sm center-xs">
-          <div className="col-lg col-md col-sm col-xs leftColumn">
-            <div>
-              <div className="game-container content-box">
-                <StaveRenderer
-                  keys={this.state.running ? this.state.currentKeys : emptyKeySet}
-                  chordIndex={this.state.currentChordIndex}
-                  keySignature={this.state.currentKeySignature}
-                />
-
-                <div className={classNames({
-                  "row center-xs": true,
-                })}>
-                  <div className="col-xs-12">
-                    {welcomeText}
-                    {startStopButton}
-                  </div>
-                </div>
-              </div>
-              <CollapsableContainer collapsed={!miniClaviature}>
-                <div className={claviatureContainerClasses}>
-                  {miniClaviature}
-                  <div className={classNames({
-                    message: true,
-                    hide: this.state.errorMessage === null
-                  })}>
-                    <h3>{this.state.errorMessage}</h3>
-                  </div>
-                </div>
-              </CollapsableContainer>
-            </div>
-          </div>
-          <div className="col-lg-4 col-md-12 col-sm-12 col-xs-12 rightColumn">
-            <PitchSettingsView settings={this.props.settings} />
-            <PitchStatisticView
-              statisticService={this.props.statisticService}
-              settings={this.props.settings} />
-          </div>
-          <audio ref="successPlayer" hidden="true" src={successMp3Url} controls preload="auto" autobuffer />
-        </div>
-      </div>
-    );
-  }
 
   componentDidUpdate() {
+
     this.midiService.setDesiredKeys(this.getAllCurrentKeys(), this.state.currentKeySignature);
   }
 
@@ -278,17 +178,30 @@ export default class PitchReadingView extends Component {
 
     this.props.statisticService.register(event);
 
-    if (this.state.currentChordIndex + 1 >= this.state.currentKeys.treble.length) {
+    if (this.finished){
+ 
+    }
+    else if (this.state.currentChordIndex + 1 >= this.state.currentKeys.treble.length) {
+
       this.setState({
-        ...(this.generateNewBarState())
+        currentChordIndex: this.state.currentChordIndex,
+        finished : true
       });
+
+      setTimeout(
+        function(){
+          this.setState({...(this.generateNewBarState())})
+        }.bind(this),
+        700
+      );
+
     } else {
+      // console.log("Updated: " + (new Date()).getTime());
       this.setState({
         currentChordIndex: this.state.currentChordIndex + 1,
       });
     }
 
-    this.playSuccessSound();
     AnalyticsService.sendEvent('PitchReading', "success");
   }
 
@@ -310,6 +223,105 @@ export default class PitchReadingView extends Component {
       keySignature: this.state.currentKeySignature,
     });
     AnalyticsService.sendEvent('PitchReading', "failure");
+  }
+
+   render() {
+    const claviatureContainerClasses = classNames({
+      "content-box": true,
+      "claviature-container": true
+    });
+
+    const isMidiAvailable = this.props.settings.midi.inputs.get().length > 0;
+    const noErrors = this.state.errorMessage !== null;
+    const miniClaviature = (isMidiAvailable && noErrors)
+     ? null :
+     <ClaviatureView
+       desiredKeys={this.getAllCurrentKeys()}
+       keySignature={this.state.currentKeySignature}
+       successCallback={this.onSuccess.bind(this)}
+       failureCallback={this.onFailure.bind(this)}
+       disabled={!this.state.running}
+      />;
+
+    const startStopButton = <GameButton
+      label={`${this.state.running ? "Stop" : "Start"} training`}
+      shortcutLetter='s'
+      primary
+      onClick={this.startStopTraining.bind(this)}
+    />;
+
+    const midiSetUpText = <p>
+      {`The generated notes will be so that you play only one note at a time.
+      If you want to practice chords, have a look into the `}
+      <a href="https://github.com/philippotto/Piano-Trainer#how-to-use">
+        Set Up
+      </a>
+      {" section to hook up your digital piano."}
+    </p>;
+
+    const welcomeText = <CollapsableContainer collapsed={this.state.running}>
+      <div className={classNames({
+        welcomeText: true,
+      })}>
+        <p>
+           {"When you hit Start, notes will be displayed in the stave above. "}
+           {isMidiAvailable ?
+              "Since we found a connected piano, you can use it to play the notes. " :
+              "Just use the mini claviature below to play the notes. "
+           }
+           {"Don't worry about the rhythm or speed for now."}
+        </p>
+        {isMidiAvailable ? null : midiSetUpText}
+      </div>
+    </CollapsableContainer>;
+
+    const emptyKeySet = {
+      treble: [],
+      bass: []
+    };
+
+    return (
+      <div className={classNames({trainer: true, "trainerHidden1": !this.props.isActive})}>
+        <div className="row center-lg center-md center-sm center-xs">
+          <div className="col-lg col-md col-sm col-xs leftColumn">
+            <div>
+              <div className="game-container content-box">
+                <StaveRenderer
+                  keys={this.state.running ? this.state.currentKeys : emptyKeySet}
+                  chordIndex={this.state.currentChordIndex}
+                  finished={this.state.finished}
+                  keySignature={this.state.currentKeySignature}
+                />
+
+                <div className={classNames({
+                  "row center-xs": true,
+                })}>
+                  <div className="col-xs-12">
+                    {welcomeText}
+                    {startStopButton}
+                  </div>
+                </div>
+              </div>
+              <div className="content-box">
+                <div className="row">
+                  <div className="col-xs-3" id="note1" style={{height:'40px',backgroundColor:(this.state.currentChordIndex > 0) ? '#398439' : '#FFFFFF'}}/>  
+                  <div className="col-xs-3" id="note1" style={{height:'40px',backgroundColor:(this.state.currentChordIndex > 1) ? '#398439' : '#FFFFFF'}}/>  
+                  <div className="col-xs-3" id="note1" style={{height:'40px',backgroundColor:(this.state.currentChordIndex > 2) ? '#398439' : '#FFFFFF'}}/>  
+                  <div className="col-xs-3" id="note1" style={{height:'40px',backgroundColor:(this.state.currentChordIndex > 2 && this.state.finished) ? '#398439' : '#FFFFFF'}}/>  
+                </div>
+              </div>
+ 
+            </div>
+          </div>
+          <div className="col-lg-4 col-md-12 col-sm-12 col-xs-12 rightColumn">
+            <PitchSettingsView settings={this.props.settings} />
+            <PitchStatisticView
+              statisticService={this.props.statisticService}
+              settings={this.props.settings} />
+          </div>
+         </div>
+      </div>
+    );
   }
 
 }

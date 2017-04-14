@@ -44,8 +44,7 @@ export default class App extends Component {
           <img id="image-background" src={pianoBackgroundJpg} />
 
           <div className="jumbotron">
-            <h1>Sheet Music Tutor</h1>
-            <h3>Improve your sheet reading skills.</h3>
+            <h3>Sheet Music Tutor</h3>
             <div className="row center-xs">
               <div className="col-xs">
                 <Nav
@@ -74,63 +73,6 @@ export default class App extends Component {
             />
           </div>
         </div>
-        <footer>
-
-          <div className="subscribe-follow-section row around-md">
-            <div className="col-md-4 col-xs-12 left">
-              <div className="row">
-                <div className="col-md-12 col-xs-12">
-                  <h2>Subscribe</h2>
-                </div>
-              </div>
-              <div className="row">
-                <div className="col-md-12 col-xs-12">
-                  <p>
-                    Sheet Music Tutor is still under development.
-                    Be first to find out when it gets updates.
-                  </p>
-                  </div>
-              </div>
-              <NewsletterForm />
-            </div>
-            <div className="follow-section col-md-4 col-xs-12 left">
-              <div className="row">
-                <div className="col-md-12 col-xs-12">
-                  <h2>Follow</h2>
-                </div>
-              </div>
-              <div className="row">
-                <div className="col-md-12 col-xs-12">
-                  <p>
-                    Follow us on social media to stay up to date on new features or to give us feedback.
-                  </p>
-                  </div>
-              </div>
-              <div className="row">
-                <div className="col-md-12 col-xs-12">
-                  <a href="http://facebook.com/SheetMusicTutor" target="_blank" className="btn btn-primary">
-                    <i className="fa fa-facebook"></i>
-                  </a>
-                  <a href="http://twitter.com/SheetMusicTutor" target="_blank" className="btn btn-primary">
-                    <i className="fa fa-twitter"></i>
-                  </a>
-                  <a href="http://github.com/philippotto/piano-trainer" target="_blank" className="btn btn-primary">
-                    <i className="fa fa-github"></i>
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-          Created and maintained by <a href="http://github.com/philippotto/">Philipp Otto</a>
-          &nbsp;|&nbsp;
-          <a href="#" onClick={()=>this.setState({ showPrivacyPolicy: true })}>
-            Privacy Policy
-          </a>
-          &nbsp;|&nbsp;
-          &copy; {(new Date()).getFullYear()}
-
-          <PrivacyPolicyModal show={this.state.showPrivacyPolicy} onHide={() => this.setState({showPrivacyPolicy : false})} />
-        </footer>
       </div>
 
     );
